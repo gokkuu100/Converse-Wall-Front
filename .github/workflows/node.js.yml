@@ -9,6 +9,10 @@ on:
       - main  # Change this to your main branch
 
 jobs:
+  permissions:
+    id-token: write
+    pages: write
+    
   deploy:
     runs-on: ubuntu-latest
 
