@@ -1,0 +1,15 @@
+{
+  "files": {
+    "main.css": "/converse-front/static/css/main.f855e6bc.css",
+    "main.js": "/converse-front/static/js/main.d5962a6f.js",
+    "static/js/787.b9aa4f7f.chunk.js": "/converse-front/static/js/787.b9aa4f7f.chunk.js",
+    "index.html": "/converse-front/index.html",
+    "main.f855e6bc.css.map": "/converse-front/static/css/main.f855e6bc.css.map",
+    "main.d5962a6f.js.map": "/converse-front/static/js/main.d5962a6f.js.map",
+    "787.b9aa4f7f.chunk.js.map": "/converse-front/static/js/787.b9aa4f7f.chunk.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.f855e6bc.css",
+    "static/js/main.d5962a6f.js"
+  ]
+}
