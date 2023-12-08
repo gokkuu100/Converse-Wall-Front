@@ -22,7 +22,7 @@ const SignIn = () => {
             localStorage.setItem('token',response.data.token);
             
             // navigate to next page
-            navigate("/dashboard");
+            navigate("/inbox");
         } catch (error) {
             console.error("Error during login:", error)
             setError("Invalid username or password")
