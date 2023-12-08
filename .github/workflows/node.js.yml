@@ -6,51 +6,30 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches:
-      - main
+      - main  # Change this to your main branch
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 14.x  # Adjust the version as needed
-
-      - name: Install dependencies
-        run: npm install
-
-      - name: Build React app
-        run: npm run build  # Adjust the build command if needed
-
-      - name: Archive production artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: build
-          path: build  # Adjust the build output folder if needed
-
   deploy:
     runs-on: ubuntu-latest
 
-    needs: build
-
     steps:
-      - name: Checkout
+      - name: Checkout Repository
         uses: actions/checkout@v2
 
-      - name: Download production artifacts
-        uses: actions/download-artifact@v2
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
         with:
-          name: build
-          path: build
+          node-version: 14  # Change this to your Node.js version
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
 
       - name: Deploy to GitHub Pages
-        uses: JamesIves/github-pages-deploy-action@4.1.5  # Use a suitable version
+        uses: JamesIves/github-pages-deploy-action@4.1.1
         with:
-          branch: gh-pages  # The branch to deploy to
-          folder: build  # The folder containing your build artifacts
-          clean: true  # Remove existing files before deploying
+          ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages  # Change this to your GitHub Pages branch
+          FOLDER: build
