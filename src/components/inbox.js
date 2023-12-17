@@ -87,14 +87,19 @@ const Inbox = () => {
       ></input>
       <button onClick={sendMessage}>Send</button>
 
+      <div className="flex flex-col">
       {messagesReceived.map((messageObject, index) => (
-        <div key={index}>
+        <div 
+        key={index}>
           <p>Sender ID: {messageObject.senderId}</p>
           <p>Receiver ID: {messageObject.receiverId}</p>
+          <div>
           <p>Message: {messageObject.messageText}</p>
+          </div>
           <p>Type: {messageObject.type}</p>
         </div>
       ))}
+      </div>
     </>
   );
 };
