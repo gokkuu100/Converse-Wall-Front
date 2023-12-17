@@ -10,17 +10,30 @@ const Inbox = () => {
   const [receiverId, setReceiverId] = useState("");
   const [users, setUsers] = useState([]);
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     const senderId = localStorage.getItem("senderId");
     if (receiverId) {
       const messageObject = {
         senderId,
         receiverId,
-        message,
+        messageText: message,
         type: "sent",
       };
       socket.emit("send_message", messageObject);
-      // No need to update local state here, it will be updated when receiving the message
+      // No need to update local state here, it will be updated when receiving the message        // Save the message to the database
+        try {
+            await axios.post("http://localhost:8000/api/messages", JSON.stringify(messageObject), {
+                headers: {
+                    Authorization: `${localStorage.getItem("token")}`,
+                    "Content-Type": "application/json"
+                },
+            });
+        } catch (error) {
+            console.error("Error saving message:", error);
+        }
+
+        // Update local state to display the sent message immediately
+        setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent"}]);
     } else {
       console.error("Select a user to send a message to.");
     }
@@ -30,7 +43,7 @@ const Inbox = () => {
     axios
       .get("http://localhost:8000/api/users", {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          Authorization: `${localStorage.getItem("token")}`,
         },
       })
       .then((response) => {
@@ -78,7 +91,7 @@ const Inbox = () => {
         <div key={index}>
           <p>Sender ID: {messageObject.senderId}</p>
           <p>Receiver ID: {messageObject.receiverId}</p>
-          <p>Message: {messageObject.message}</p>
+          <p>Message: {messageObject.messageText}</p>
           <p>Type: {messageObject.type}</p>
         </div>
       ))}
