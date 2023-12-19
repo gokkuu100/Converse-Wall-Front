@@ -34,9 +34,11 @@ const Inbox = () => {
 
         // Update local state to display the sent message immediately
         setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent"}]);
+        setMessage("");
     } else {
       console.error("Select a user to send a message to.");
     }
+    
   };
 
   useEffect(() => {
@@ -97,7 +99,6 @@ const Inbox = () => {
                   : "mr-auto bg-gray-300"
               }`}
             >
-              {/* ... (message content) */}
           <p>Sender ID: {messageObject.senderId}</p>
           <p>Receiver ID: {messageObject.receiverId}</p>
           <div>
