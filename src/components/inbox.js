@@ -71,40 +71,51 @@ const Inbox = () => {
   }, [messagesReceived]);
 
   return (
-    <>
-      <select onChange={(e) => handleUserSelection(e.target.value)}>
-        <option value="">Select a user</option>
-        {users.map((user) => (
-          <option key={user.id} value={user.id}>
-            {user.name}
-          </option>
-        ))}
-      </select>
-
-      <input
-        placeholder="write message here"
-        onChange={(event) => setMessage(event.target.value)}
-      ></input>
-      <button onClick={sendMessage}>Send</button>
-
-      <div className="flex flex-col justify-between items-end">
-      {messagesReceived.map((messageObject, index) => (
-        <div 
-        key={index}
-        className={`my-2 p-4 max-w-xs ${
-          messageObject.type === "sent" ? "ml-auto bg-blue-500 text-white" : "mr-auto bg-gray-300"
-        }`}
-        >
+    <div className="flex">
+      <div className="w-1/4 p-4 border-r">
+        <h2 className="text-xl font-bold mb-4">Users</h2>
+        <ul>
+          {users.map((user) => (
+            <li
+              key={user.id}
+              className="cursor-pointer hover:bg-gray-200 p-2"
+              onClick={() => handleUserSelection(user.id)}
+            >
+              {user.name}
+            </li>
+          ))}
+        </ul>
+      </div>
+      <div className="flex-1 p-4">
+        <div className="flex flex-col justify-between items-end">
+          {messagesReceived.map((messageObject, index) => (
+            <div
+              key={index}
+              className={`my-2 p-4 max-w-xs ${
+                messageObject.type === "sent"
+                  ? "ml-auto bg-blue-500 text-white"
+                  : "mr-auto bg-gray-300"
+              }`}
+            >
+              {/* ... (message content) */}
           <p>Sender ID: {messageObject.senderId}</p>
           <p>Receiver ID: {messageObject.receiverId}</p>
           <div>
           <p>Message: {messageObject.messageText}</p>
           </div>
           <p>Type: {messageObject.type === "sent" ? "sent" : "received"}</p>
+            </div>
+          ))}
         </div>
-      ))}
+        <div>
+          <input
+            placeholder="Write a message here"
+            onChange={(event) => setMessage(event.target.value)}
+          ></input>
+          <button onClick={sendMessage}>Send</button>
+        </div>
       </div>
-    </>
+    </div>
   );
 };
 
