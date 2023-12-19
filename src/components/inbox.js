@@ -87,16 +87,20 @@ const Inbox = () => {
       ></input>
       <button onClick={sendMessage}>Send</button>
 
-      <div className="flex flex-col">
+      <div className="flex flex-col justify-between items-end">
       {messagesReceived.map((messageObject, index) => (
         <div 
-        key={index}>
+        key={index}
+        className={`my-2 p-4 max-w-xs ${
+          messageObject.type === "sent" ? "ml-auto bg-blue-500 text-white" : "mr-auto bg-gray-300"
+        }`}
+        >
           <p>Sender ID: {messageObject.senderId}</p>
           <p>Receiver ID: {messageObject.receiverId}</p>
           <div>
           <p>Message: {messageObject.messageText}</p>
           </div>
-          <p>Type: {messageObject.type}</p>
+          <p>Type: {messageObject.type === "sent" ? "sent" : "received"}</p>
         </div>
       ))}
       </div>
