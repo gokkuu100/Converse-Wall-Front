@@ -11,34 +11,28 @@ const Inbox = () => {
   const [users, setUsers] = useState([]);
 
   const sendMessage = async () => {
-    const senderId = localStorage.getItem("senderId");
-    if (receiverId) {
-      const messageObject = {
+    try {
+      const senderId = localStorage.getItem("senderId");
+
+      // sends the messages to the server
+      socket.emit("send_message", {
+        senderId,
+        receiverId,
+        messageText:message,
+      });
+
+      const senMessage = {
         senderId,
         receiverId,
         messageText: message,
         type: "sent",
-      };
-      socket.emit("send_message", messageObject);
-      // No need to update local state here, it will be updated when receiving the message        // Save the message to the database
-        try {
-            await axios.post("http://localhost:8000/api/messages", JSON.stringify(messageObject), {
-                headers: {
-                    Authorization: `${localStorage.getItem("token")}`,
-                    "Content-Type": "application/json"
-                },
-            });
-        } catch (error) {
-            console.error("Error saving message:", error);
-        }
-
-        // Update local state to display the sent message immediately
-        setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent"}]);
-        setMessage("");
-    } else {
-      console.error("Select a user to send a message to.");
+        createdAt: new Date().toISOString
+      }
+      setMessagesReceived([...messagesReceived,senMessage])
+      setMessage("")
+    } catch (error) {
+      console.error("Error sending message:", error);
     }
-    
   };
 
   useEffect(() => {
@@ -56,8 +50,21 @@ const Inbox = () => {
       });
   }, []);
 
-  const handleUserSelection = (selectedUserId) => {
+  const handleUserSelection = async (selectedUserId) => {
     setReceiverId(selectedUserId);
+
+    try {
+      const response = await axios.get(`http://localhost:8000/api/conversations/${selectedUserId}`, {
+        headers: {
+          Authorization: `${localStorage.getItem("token")}`,
+        },
+      });
+      // const combinedMessages = [...messagesReceived, ...response.data]
+      const sortedMessages = response.data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
+      setMessagesReceived(sortedMessages);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+    }
   };
 
   useEffect(() => {
@@ -89,7 +96,7 @@ const Inbox = () => {
         </ul>
       </div>
       <div className="flex-1 p-4">
-        <div className="flex flex-col justify-between items-end">
+        <div className="flex flex-col justify-between items-end overflow-y-auto max-h-screen">
           {messagesReceived.map((messageObject, index) => (
             <div
               key={index}
@@ -99,16 +106,16 @@ const Inbox = () => {
                   : "mr-auto bg-gray-300"
               }`}
             >
-          <p>Sender ID: {messageObject.senderId}</p>
-          <p>Receiver ID: {messageObject.receiverId}</p>
-          <div>
-          <p>Message: {messageObject.messageText}</p>
-          </div>
-          <p>Type: {messageObject.type === "sent" ? "sent" : "received"}</p>
+              <p>Sender ID: {messageObject.senderId}</p>
+              <p>Receiver ID: {messageObject.receiverId}</p>
+              <div>
+                <p>Message: {messageObject.messageText}</p>
+              </div>
+              <p>Type: {messageObject.type === "sent" ? "sent" : "received"}</p>
             </div>
           ))}
         </div>
-        <div>
+        <div className="fixed inset-x-0 bottom-0 p-4 bg-blue">
           <input
             placeholder="Write a message here"
             onChange={(event) => setMessage(event.target.value)}
@@ -121,3 +128,4 @@ const Inbox = () => {
 };
 
 export default Inbox;
+ 
