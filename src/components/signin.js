@@ -5,6 +5,7 @@ import axios from "axios";
 const SignIn = () => {
     const [username, setUsername] = useState("")
     const [password, setPassword] = useState("")
+    const [senderId, setsenderId] = useState("")
     const [error, setError] = useState("")
     const navigate = useNavigate();
     
@@ -20,6 +21,8 @@ const SignIn = () => {
 
             // stores token from the backend
             localStorage.setItem('token',response.data.token);
+            localStorage.setItem('senderId', response.data.id)
+            // setsenderId(response.data.id);
             
             // navigate to next page
             navigate("/inbox");
