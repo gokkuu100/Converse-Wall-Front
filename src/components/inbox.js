@@ -9,31 +9,64 @@ const Inbox = () => {
   const [messagesReceived, setMessagesReceived] = useState([]);
   const [receiverId, setReceiverId] = useState("");
   const [users, setUsers] = useState([]);
+  const [selectedImage, setSelectedImage] = useState("");
+
+  const handleImageChange = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setSelectedImage(reader.result);
+        };
+        reader.readAsDataURL(file);
+    }
+};
 
   const sendMessage = async () => {
     try {
-      const senderId = localStorage.getItem("senderId");
+        const senderId = localStorage.getItem("senderId");
 
-      // sends the messages to the server
-      socket.emit("send_message", {
-        senderId,
-        receiverId,
-        messageText:message,
-      });
+        if (receiverId && (message.trim() !== "" || selectedImage)) {
+            // Prepare the message object
+            const messageObject = {
+                senderId,
+                receiverId,
+                messageText: message.trim(),
+                type: "sent",
+                imageUrl: selectedImage, // Add the selected image URL
+            };
 
-      const senMessage = {
-        senderId,
-        receiverId,
-        messageText: message,
-        type: "sent",
-        createdAt: new Date().toISOString
-      }
-      setMessagesReceived([...messagesReceived,senMessage])
-      setMessage("")
+            // Send the message to the server
+            socket.emit("send_message", messageObject);
+
+            // Save the message to the database
+            try {
+                await axios.post(
+                    "http://localhost:8000/api/messages",
+                    JSON.stringify(messageObject),
+                    {
+                        headers: {
+                            Authorization: `${localStorage.getItem("token")}`,
+                            "Content-Type": "application/json",
+                        },
+                    }
+                );
+            } catch (error) {
+                console.error("Error saving message:", error);
+            }
+
+            // Update local state to display the sent message immediately
+            setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent" }]);
+            setMessage(""); // Clear the input field after sending the message
+            setSelectedImage(""); // Clear the selected image
+        } else {
+            console.error("Select a user and enter a non-empty message to send.");
+        }
     } catch (error) {
-      console.error("Error sending message:", error);
+        console.error("Error sending message:", error);
     }
-  };
+};
+
 
   useEffect(() => {
     axios
@@ -120,8 +153,20 @@ const Inbox = () => {
             placeholder="Write a message here"
             onChange={(event) => setMessage(event.target.value)}
           ></input>
+          <button onClick={sendMessage}>Send</button><br />
+        </div><br />
+        <div className="fixed inset-x-0 p-4 bg-blue">
+          <input
+              type="text"
+              placeholder="Write a message here"
+              onChange={(event) => setMessage(event.target.value)}
+          ></input>
+          <input
+              type="file"
+              onChange={handleImageChange}
+          ></input>
           <button onClick={sendMessage}>Send</button>
-        </div>
+      </div>
       </div>
     </div>
   );
