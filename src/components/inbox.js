@@ -9,14 +9,8 @@ const Inbox = () => {
   const [messagesReceived, setMessagesReceived] = useState([]);
   const [receiverId, setReceiverId] = useState("");
   const [users, setUsers] = useState([]);
-  const [selectedImage, setSelectedImage] = useState("");
 
-  const handleImageChange = (event) => {
-    const file = event.target.files[0];
-    if (file) {
-      setSelectedImage(file);
-    }
-  };
+
 
   const sendMessage = async (event) => {
     event.preventDefault();
@@ -29,7 +23,6 @@ const Inbox = () => {
         receiverId,
         messageText: message.trim(),
         type: "sent",
-        imageUrl: selectedImage,
       };
   
       if (receiverId && (message.trim() !== "" || selectedImage)) {
@@ -38,7 +31,6 @@ const Inbox = () => {
         formData.append("receiverId", receiverId);
         formData.append("messageText", message.trim());
         formData.append("type", "sent");
-        formData.append("image", selectedImage);
   
         // Log the FormData content
         for (let [key, value] of formData.entries()) {
@@ -48,7 +40,7 @@ const Inbox = () => {
         await axios.post("http://localhost:8000/api/messages", formData, {
           headers: {
             Authorization: `${localStorage.getItem("token")}`,
-            "Content-Type": "multipart/form-data",
+            "Content-Type": "application/json",
           },
         });
   
@@ -150,10 +142,6 @@ const Inbox = () => {
               placeholder="Write a message here"
               value={message}
               onChange={(event) => setMessage(event.target.value)}
-            ></input>
-            <input
-              type="file"
-              onChange={(event) => handleImageChange(event)}
             ></input>
             <button type="submit">Send</button>
           </form>
