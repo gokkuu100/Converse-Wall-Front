@@ -14,59 +14,56 @@ const Inbox = () => {
   const handleImageChange = (event) => {
     const file = event.target.files[0];
     if (file) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setSelectedImage(reader.result);
-        };
-        reader.readAsDataURL(file);
+      setSelectedImage(file);
     }
-};
+  };
 
-  const sendMessage = async () => {
+  const sendMessage = async (event) => {
+    event.preventDefault();
+  
     try {
-        const senderId = localStorage.getItem("senderId");
-
-        if (receiverId && (message.trim() !== "" || selectedImage)) {
-            // Prepare the message object
-            const messageObject = {
-                senderId,
-                receiverId,
-                messageText: message.trim(),
-                type: "sent",
-                imageUrl: selectedImage, // Add the selected image URL
-            };
-
-            // Send the message to the server
-            socket.emit("send_message", messageObject);
-
-            // Save the message to the database
-            try {
-                await axios.post(
-                    "http://localhost:8000/api/messages",
-                    JSON.stringify(messageObject),
-                    {
-                        headers: {
-                            Authorization: `${localStorage.getItem("token")}`,
-                            "Content-Type": "application/json",
-                        },
-                    }
-                );
-            } catch (error) {
-                console.error("Error saving message:", error);
-            }
-
-            // Update local state to display the sent message immediately
-            setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent" }]);
-            setMessage(""); // Clear the input field after sending the message
-            setSelectedImage(""); // Clear the selected image
-        } else {
-            console.error("Select a user and enter a non-empty message to send.");
+      const senderId = localStorage.getItem("senderId");
+  
+      let messageObject = {
+        senderId,
+        receiverId,
+        messageText: message.trim(),
+        type: "sent",
+        imageUrl: selectedImage,
+      };
+  
+      if (receiverId && (message.trim() !== "" || selectedImage)) {
+        const formData = new FormData();
+        formData.append("senderId", senderId);
+        formData.append("receiverId", receiverId);
+        formData.append("messageText", message.trim());
+        formData.append("type", "sent");
+        formData.append("image", selectedImage);
+  
+        // Log the FormData content
+        for (let [key, value] of formData.entries()) {
+          console.log(`${key}: ${value}`);
         }
+  
+        await axios.post("http://localhost:8000/api/messages", formData, {
+          headers: {
+            Authorization: `${localStorage.getItem("token")}`,
+            "Content-Type": "multipart/form-data",
+          },
+        });
+  
+        setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent" }]);
+        setMessage("");
+        setSelectedImage("");
+      } else {
+        console.error("Select a user and enter a non-empty message to send.");
+      }
     } catch (error) {
-        console.error("Error sending message:", error);
+      console.error("Error sending message:", error);
+      console.log("Response data:", error.response.data);
     }
-};
-
+  };
+  
 
   useEffect(() => {
     axios
@@ -92,7 +89,6 @@ const Inbox = () => {
           Authorization: `${localStorage.getItem("token")}`,
         },
       });
-      // const combinedMessages = [...messagesReceived, ...response.data]
       const sortedMessages = response.data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
       setMessagesReceived(sortedMessages);
     } catch (error) {
@@ -149,28 +145,22 @@ const Inbox = () => {
           ))}
         </div>
         <div className="fixed inset-x-0 bottom-0 p-4 bg-blue">
-          <input
-            placeholder="Write a message here"
-            onChange={(event) => setMessage(event.target.value)}
-          ></input>
-          <button onClick={sendMessage}>Send</button><br />
-        </div><br />
-        <div className="fixed inset-x-0 p-4 bg-blue">
-          <input
-              type="text"
+          <form onSubmit={sendMessage}>
+            <input
               placeholder="Write a message here"
+              value={message}
               onChange={(event) => setMessage(event.target.value)}
-          ></input>
-          <input
+            ></input>
+            <input
               type="file"
-              onChange={handleImageChange}
-          ></input>
-          <button onClick={sendMessage}>Send</button>
-      </div>
+              onChange={(event) => handleImageChange(event)}
+            ></input>
+            <button type="submit">Send</button>
+          </form>
+        </div>
       </div>
     </div>
   );
 };
 
 export default Inbox;
- 
