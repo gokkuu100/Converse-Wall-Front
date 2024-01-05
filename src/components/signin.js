@@ -22,9 +22,9 @@ const SignIn = () => {
             // stores token from the backend
             localStorage.setItem('token',response.data.token);
             localStorage.setItem('senderId', response.data.id)
-            // setsenderId(response.data.id);
             
-            // navigate to next page
+            
+            // navigates to next page
             navigate("/inbox");
         } catch (error) {
             console.error("Error during login:", error)

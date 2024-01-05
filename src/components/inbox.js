@@ -70,7 +70,7 @@ const Inbox = () => {
       });
 
       console.log("Image uploaded successfully");
-      setImage(null); // Reset the image state after sending
+      setImage(null); 
     } catch (error) {
       console.error("Error uploading image:", error);
       console.log("Response data:", error.response.data);
@@ -92,34 +92,26 @@ const Inbox = () => {
       });
   }, []);
 
-  useEffect(() => {
-    // Fetch images when the component mounts
-    axios
-      .get("http://localhost:8000/api/images", {
-        headers: {
-          Authorization: `${localStorage.getItem("token")}`,
-        },
-      })
-      .then((response) => {
-        // Append the fetched images to the existing messagesAndImages state
-        setMessagesAndImages((prevMessagesAndImages) => [...prevMessagesAndImages, ...response.data]);
-      })
-      .catch((error) => {
-        console.error("Error fetching images:", error);
-      });
-  }, []);
-
   const handleUserSelection = async (selectedUserId) => {
     setReceiverId(selectedUserId);
-
+  
     try {
       const response = await axios.get(`http://localhost:8000/api/conversations/${selectedUserId}`, {
         headers: {
           Authorization: `${localStorage.getItem("token")}`,
         },
       });
-      const sortedMessages = response.data.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt))
-      setMessagesAndImages(sortedMessages);
+  
+      console.log("Response data:", response.data);
+  
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const sortedMessages = response.data.filter(item => item.type === 'received').sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const sortedImages = response.data.filter(item => item.type === 'sent').sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  
+        setMessagesAndImages([...sortedMessages, ...sortedImages]);
+      } else {
+        console.error("Invalid response structure:", response.data);
+      }
     } catch (error) {
       console.error("Error fetching conversations:", error);
     }
@@ -164,23 +156,23 @@ const Inbox = () => {
                   : "mr-auto bg-gray-300"
               }`}
             >
-              {item.messageText && (
+              {item.type === "message" && (
                 <div>
                   <p>Sender ID: {item.senderId}</p>
                   <p>Receiver ID: {item.receiverId}</p>
                   <div>
-                    <p>Message: {item.messageText}</p>
+                    <p>Message: {item.content}</p>
                   </div>
                   <p>Type: {item.type === "sent" ? "sent" : "received"}</p>
                 </div>
               )}
-              {item.image_data && (
+              {item.type === "image" && (
                 <div>
                   <p>Sender ID: {item.senderId}</p>
                   <p>Receiver ID: {item.receiverId}</p>
                   <div>
                     <img
-                      src={`data:image/png;base64,${new Uint8Array(item.image_data.data).reduce(
+                      src={`data:image/png;base64,${new Uint8Array(item.content.data).reduce(
                         (data, byte) => data + String.fromCharCode(byte),
                         ''
                       )}`}
