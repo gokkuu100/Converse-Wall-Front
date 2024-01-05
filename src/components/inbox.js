@@ -6,39 +6,75 @@ const socket = io.connect("http://localhost:8000");
 
 const Inbox = () => {
   const [message, setMessage] = useState("");
-  const [messagesReceived, setMessagesReceived] = useState([]);
+  const [image, setImage] = useState(null);
+  const [messagesAndImages, setMessagesAndImages] = useState([]);
   const [receiverId, setReceiverId] = useState("");
   const [users, setUsers] = useState([]);
 
-  const sendMessage = async () => {
-    const senderId = localStorage.getItem("senderId");
-    if (receiverId) {
-      const messageObject = {
+  const sendMessage = async (event) => {
+    event.preventDefault();
+
+    try {
+      const senderId = localStorage.getItem("senderId");
+
+      let messageObject = {
         senderId,
         receiverId,
-        messageText: message,
+        messageText: message.trim(),
         type: "sent",
       };
-      socket.emit("send_message", messageObject);
-      // No need to update local state here, it will be updated when receiving the message        // Save the message to the database
-        try {
-            await axios.post("http://localhost:8000/api/messages", JSON.stringify(messageObject), {
-                headers: {
-                    Authorization: `${localStorage.getItem("token")}`,
-                    "Content-Type": "application/json"
-                },
-            });
-        } catch (error) {
-            console.error("Error saving message:", error);
-        }
 
-        // Update local state to display the sent message immediately
-        setMessagesReceived([...messagesReceived, { ...messageObject, type: "sent"}]);
+      if (receiverId && message.trim() !== "") {
+        await axios.post("http://localhost:8000/api/messages", {
+          senderId,
+          receiverId,
+          messageText: message.trim(),
+        }, {
+          headers: {
+            Authorization: `${localStorage.getItem("token")}`,
+          },
+        });
+
+        socket.emit("send_message", messageObject);
+
+        setMessagesAndImages([...messagesAndImages, { ...messageObject }]);
         setMessage("");
-    } else {
-      console.error("Select a user to send a message to.");
+      } else {
+        console.error("Select a user and enter a non-empty message to send.");
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      console.log("Response data:", error.response.data);
     }
-    
+  };
+
+  // Handle image selection
+  const handleImageChange = (event) => {
+    setImage(event.target.files[0]);
+  };
+
+  const sendImage = async () => {
+    try {
+      const senderId = localStorage.getItem("senderId");
+
+      const formData = new FormData();
+      formData.append("senderId", senderId);
+      formData.append("receiverId", receiverId);
+      formData.append("image", image);
+
+      await axios.post("http://localhost:8000/api/upload", formData, {
+        headers: {
+          Authorization: `${localStorage.getItem("token")}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      console.log("Image uploaded successfully");
+      setImage(null); 
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      console.log("Response data:", error.response.data);
+    }
   };
 
   useEffect(() => {
@@ -56,21 +92,42 @@ const Inbox = () => {
       });
   }, []);
 
-  const handleUserSelection = (selectedUserId) => {
+  const handleUserSelection = async (selectedUserId) => {
     setReceiverId(selectedUserId);
+  
+    try {
+      const response = await axios.get(`http://localhost:8000/api/conversations/${selectedUserId}`, {
+        headers: {
+          Authorization: `${localStorage.getItem("token")}`,
+        },
+      });
+  
+      console.log("Response data:", response.data);
+  
+      if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+        const sortedMessages = response.data.filter(item => item.type === 'received').sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        const sortedImages = response.data.filter(item => item.type === 'sent').sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  
+        setMessagesAndImages([...sortedMessages, ...sortedImages]);
+      } else {
+        console.error("Invalid response structure:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+    }
   };
 
   useEffect(() => {
     socket.emit("join_room", localStorage.getItem("senderId"));
 
     socket.on("receive_message", (data) => {
-      setMessagesReceived([...messagesReceived, data]);
+      setMessagesAndImages([...messagesAndImages, data]);
     });
 
     return () => {
       socket.off("receive_message");
     };
-  }, [messagesReceived]);
+  }, [socket, messagesAndImages]);
 
   return (
     <div className="flex">
@@ -89,31 +146,59 @@ const Inbox = () => {
         </ul>
       </div>
       <div className="flex-1 p-4">
-        <div className="flex flex-col justify-between items-end">
-          {messagesReceived.map((messageObject, index) => (
+        <div className="flex flex-col justify-between items-end overflow-y-auto max-h-screen">
+          {messagesAndImages.map((item, index) => (
             <div
               key={index}
               className={`my-2 p-4 max-w-xs ${
-                messageObject.type === "sent"
+                item.type === "sent"
                   ? "ml-auto bg-blue-500 text-white"
                   : "mr-auto bg-gray-300"
               }`}
             >
-          <p>Sender ID: {messageObject.senderId}</p>
-          <p>Receiver ID: {messageObject.receiverId}</p>
-          <div>
-          <p>Message: {messageObject.messageText}</p>
-          </div>
-          <p>Type: {messageObject.type === "sent" ? "sent" : "received"}</p>
+              {item.type === "message" && (
+                <div>
+                  <p>Sender ID: {item.senderId}</p>
+                  <p>Receiver ID: {item.receiverId}</p>
+                  <div>
+                    <p>Message: {item.content}</p>
+                  </div>
+                  <p>Type: {item.type === "sent" ? "sent" : "received"}</p>
+                </div>
+              )}
+              {item.type === "image" && (
+                <div>
+                  <p>Sender ID: {item.senderId}</p>
+                  <p>Receiver ID: {item.receiverId}</p>
+                  <div>
+                    <img
+                      src={`data:image/png;base64,${new Uint8Array(item.content.data).reduce(
+                        (data, byte) => data + String.fromCharCode(byte),
+                        ''
+                      )}`}
+                      alt="Received Image"
+                      style={{ maxWidth: "100%" }}
+                    />
+                  </div>
+                  <p>Type: Image</p>
+                </div>
+              )}
             </div>
           ))}
         </div>
-        <div>
-          <input
-            placeholder="Write a message here"
-            onChange={(event) => setMessage(event.target.value)}
-          ></input>
-          <button onClick={sendMessage}>Send</button>
+        <div className="fixed inset-x-0 bottom-0 p-4 bg-blue">
+          <form onSubmit={sendMessage}>
+            <input
+              placeholder="Write a message here"
+              value={message}
+              onChange={(event) => setMessage(event.target.value)}
+            ></input>
+            <button type="submit">Send Message</button>
+          </form>
+          <form>
+            <input type="file" accept="image/*" onChange={handleImageChange} />
+            <button type="button" onClick={sendImage}>Send Image</button>
+          </form>
         </div>
       </div>
     </div>
